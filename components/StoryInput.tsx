@@ -1,11 +1,12 @@
 
 import React, { useState, useRef } from 'react';
 import { Button } from './Button';
-import { Sparkles, Wand2, Paperclip, X, FileText, Upload } from 'lucide-react';
+import { Sparkles, Wand2, Paperclip, X, FileText, Upload, Film, Baby } from 'lucide-react';
 import { FileData } from '../services/geminiService';
+import { IllustrationStyle } from '../types';
 
 interface StoryInputProps {
-  onGenerate: (topic: string, file?: FileData) => void;
+  onGenerate: (topic: string, file: FileData, style: IllustrationStyle) => void;
   isLoading: boolean;
 }
 
@@ -13,6 +14,7 @@ export const StoryInput: React.FC<StoryInputProps> = ({ onGenerate, isLoading })
   const [topic, setTopic] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileData, setFileData] = useState<FileData | undefined>(undefined);
+  const [style, setStyle] = useState<IllustrationStyle>('cartoon');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,7 +44,7 @@ export const StoryInput: React.FC<StoryInputProps> = ({ onGenerate, isLoading })
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (topic.trim() && fileData) {
-      onGenerate(topic, fileData);
+      onGenerate(topic, fileData, style);
     }
   };
 
@@ -77,10 +79,31 @@ export const StoryInput: React.FC<StoryInputProps> = ({ onGenerate, isLoading })
         </h1>
         
         <p className="text-xl text-gray-500 font-serif italic max-w-lg mx-auto">
-          Enter a topic and <span className="text-magic font-bold not-italic">upload a context file</span> (Required) to guide the world building.
+          Enter a topic, <span className="text-magic font-bold not-italic">choose a style</span>, and upload a context file.
         </p>
 
-        <form onSubmit={handleSubmit} className="w-full max-w-lg mx-auto relative flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="w-full max-w-lg mx-auto relative flex flex-col gap-6">
+          
+          {/* Style Selection */}
+          <div className="bg-white/80 backdrop-blur-sm p-2 rounded-xl border border-gray-100 shadow-lg flex gap-2">
+              <button
+                type="button"
+                onClick={() => setStyle('cartoon')}
+                className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 ${style === 'cartoon' ? 'bg-purple-100 text-purple-700 font-bold shadow-sm' : 'hover:bg-gray-50 text-gray-500'}`}
+              >
+                  <Baby className="w-5 h-5" />
+                  <span>Cartoon Hero</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setStyle('cinematic')}
+                className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 ${style === 'cinematic' ? 'bg-indigo-100 text-indigo-700 font-bold shadow-sm' : 'hover:bg-gray-50 text-gray-500'}`}
+              >
+                  <Film className="w-5 h-5" />
+                  <span>Cinematic</span>
+              </button>
+          </div>
+
           <div className="relative group">
             <input
               type="text"

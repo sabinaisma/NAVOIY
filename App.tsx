@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { generateStoryText, FileData } from './services/geminiService';
-import { Story, StoryState } from './types';
+import { Story, StoryState, IllustrationStyle } from './types';
 import { StoryInput } from './components/StoryInput';
 import { BookReader } from './components/BookReader';
 
@@ -11,21 +11,13 @@ const App: React.FC = () => {
     story: null,
   });
 
-  const handleGenerate = async (topic: string, file?: FileData) => {
-    if (!file) {
-        setState({ 
-            status: 'error', 
-            story: null, 
-            error: "A source file is required. Please upload an image or text file to guide the story." 
-        });
-        return;
-    }
-
+  const handleGenerate = async (topic: string, file: FileData, style: IllustrationStyle) => {
     setState({ status: 'generating_text', story: null });
     
     try {
-      // file is now guaranteed to be present
-      const story = await generateStoryText(topic, file);
+      // file is now guaranteed to be present by StoryInput logic, but typing requires check if we want to be safe, 
+      // although StoryInput won't call this without file.
+      const story = await generateStoryText(topic, file, style);
       setState({
         status: 'reading',
         story: story,

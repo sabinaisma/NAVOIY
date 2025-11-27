@@ -2,8 +2,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Story, ImageMap } from '../types';
 import { generateIllustration } from '../services/geminiService';
+import { generatePDF } from '../services/pdfService';
 import { Button } from './Button';
-import { ChevronLeft, ChevronRight, RefreshCw, BookOpen, RotateCcw, Map, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw, BookOpen, RotateCcw, Map, Users, Download } from 'lucide-react';
 
 interface BookReaderProps {
   story: Story;
@@ -39,11 +40,11 @@ export const BookReader: React.FC<BookReaderProps> = ({ story, onReset }) => {
       return `A magical book cover for a story titled "${story.title}". The cover art should depict: ${story.chapters[0]?.imagePrompt || 'a mystery'}. No text on the book cover art.`;
     }
     if (isWorldPage) {
-      return `A wide detailed landscape shot establishing the setting: ${story.world.geography}. Atmosphere: ${story.world.atmosphere}. Pixar style concept art.`;
+      return `A wide detailed landscape shot establishing the setting: ${story.world.geography}. Atmosphere: ${story.world.atmosphere}. Concept art.`;
     }
     if (isCharacterPage) {
       const charDesc = story.characters.map(c => c.description).join(" and ");
-      return `A group character lineup of: ${charDesc}. Pixar style character design sheet, neutral background.`;
+      return `A group character lineup of: ${charDesc}. Character design sheet, neutral background.`;
     }
     if (isEnding) {
         return `A peaceful ending scene for the story "${story.title}". Soft lighting, closing the book, emotional resonance.`;
@@ -57,14 +58,14 @@ export const BookReader: React.FC<BookReaderProps> = ({ story, onReset }) => {
 
     setLoadingImages(prev => ({ ...prev, [pageIndex]: true }));
     try {
-      const base64 = await generateIllustration(prompt);
+      const base64 = await generateIllustration(prompt, story.illustrationStyle);
       setImages(prev => ({ ...prev, [pageIndex]: base64 }));
     } catch (err) {
       console.error(`Failed to generate image for page ${pageIndex}`, err);
     } finally {
       setLoadingImages(prev => ({ ...prev, [pageIndex]: false }));
     }
-  }, [images, loadingImages]);
+  }, [images, loadingImages, story.illustrationStyle]);
 
   // Trigger generation when page changes
   useEffect(() => {
@@ -88,6 +89,10 @@ export const BookReader: React.FC<BookReaderProps> = ({ story, onReset }) => {
       setCurrentPage(p => p - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+  
+  const handleDownload = () => {
+    generatePDF(story, images);
   };
 
   const currentImage = images[currentPage];
@@ -114,21 +119,21 @@ export const BookReader: React.FC<BookReaderProps> = ({ story, onReset }) => {
         <div className="space-y-6 animate-fade-in-up">
           <div className="flex items-center gap-2 text-magic text-sm font-bold uppercase tracking-wider">
             <Map className="w-4 h-4" />
-            <span>The World</span>
+            <span>The World (Dunyo)</span>
           </div>
           <h2 className="text-3xl font-serif font-bold text-ink">Setting the Scene</h2>
           
           <div className="space-y-4">
              <div>
-                <h3 className="font-bold text-gray-700 font-serif text-lg">Geography</h3>
+                <h3 className="font-bold text-gray-700 font-serif text-lg">Geografiya</h3>
                 <p className="font-serif text-gray-600">{story.world.geography}</p>
              </div>
              <div>
-                <h3 className="font-bold text-gray-700 font-serif text-lg">Atmosphere</h3>
+                <h3 className="font-bold text-gray-700 font-serif text-lg">Atmosfera</h3>
                 <p className="font-serif text-gray-600">{story.world.atmosphere}</p>
              </div>
              <div>
-                <h3 className="font-bold text-gray-700 font-serif text-lg">Culture</h3>
+                <h3 className="font-bold text-gray-700 font-serif text-lg">Madaniyat</h3>
                 <p className="font-serif text-gray-600">{story.world.culture}</p>
              </div>
           </div>
@@ -143,7 +148,7 @@ export const BookReader: React.FC<BookReaderProps> = ({ story, onReset }) => {
               <Users className="w-4 h-4" />
               <span>Dramatis Personae</span>
             </div>
-            <h2 className="text-3xl font-serif font-bold text-ink">The Cast</h2>
+            <h2 className="text-3xl font-serif font-bold text-ink">The Cast (Qahramonlar)</h2>
             
             <div className="space-y-6">
                 {story.characters.map((char, idx) => (
@@ -195,13 +200,17 @@ export const BookReader: React.FC<BookReaderProps> = ({ story, onReset }) => {
     if (isEnding) {
       return (
         <div className="text-center space-y-6 animate-fade-in-up">
-          <h2 className="text-3xl font-serif font-bold text-ink">The End</h2>
+          <h2 className="text-3xl font-serif font-bold text-ink">Xotima</h2>
           <p className="text-xl leading-relaxed font-serif text-gray-700 italic">
             {story.ending}
           </p>
-          <div className="pt-8">
-             <Button onClick={onReset} className="mx-auto">
+          <div className="pt-8 flex gap-4 justify-center">
+             <Button onClick={onReset} variant="secondary">
                 Create Another Story
+             </Button>
+             <Button onClick={handleDownload} variant="primary">
+                 <Download className="w-4 h-4 mr-2" />
+                 Download PDF
              </Button>
           </div>
         </div>
@@ -218,8 +227,19 @@ export const BookReader: React.FC<BookReaderProps> = ({ story, onReset }) => {
           <RotateCcw className="w-4 h-4 mr-2" />
           New Story
         </Button>
-        <div className="text-gray-400 font-serif italic text-sm">
-          Page {currentPage + 1} of {totalPages}
+        
+        <div className="flex items-center gap-4">
+             {/* PDF Button available on all pages for convenience */}
+            <button 
+                onClick={handleDownload}
+                className="text-gray-400 hover:text-magic transition-colors p-2"
+                title="Download PDF"
+            >
+                <Download className="w-5 h-5" />
+            </button>
+            <div className="text-gray-400 font-serif italic text-sm border-l pl-4 border-gray-200">
+              Page {currentPage + 1} of {totalPages}
+            </div>
         </div>
       </div>
 
@@ -278,7 +298,7 @@ export const BookReader: React.FC<BookReaderProps> = ({ story, onReset }) => {
             disabled={currentPage === 0}
             className="w-32"
          >
-            <ChevronLeft className="w-4 h-4 mr-1" /> Previous
+            <ChevronLeft className="w-4 h-4 mr-1" /> Oldingi
          </Button>
 
          {currentPage < totalPages - 1 && (
@@ -287,7 +307,7 @@ export const BookReader: React.FC<BookReaderProps> = ({ story, onReset }) => {
                 onClick={handleNext}
                 className="w-32 shadow-magic/25"
              >
-                Next <ChevronRight className="w-4 h-4 ml-1" />
+                Keyingi <ChevronRight className="w-4 h-4 ml-1" />
              </Button>
          )}
       </div>

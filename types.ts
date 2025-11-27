@@ -25,6 +25,8 @@ export interface Chapter {
   plotType?: string; // e.g., "The Climax"
 }
 
+export type IllustrationStyle = 'cartoon' | 'cinematic';
+
 export interface Story {
   title: string;
   world: WorldBuilding;
@@ -32,6 +34,7 @@ export interface Story {
   plotOutline: PlotPoint[];
   chapters: Chapter[];
   ending: string;
+  illustrationStyle: IllustrationStyle;
 }
 
 export interface StoryState {

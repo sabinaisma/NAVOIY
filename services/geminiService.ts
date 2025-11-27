@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Story } from "../types";
+import { Story, IllustrationStyle } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -13,7 +13,7 @@ export interface FileData {
 }
 
 // File is now mandatory
-export const generateStoryText = async (topic: string, file: FileData): Promise<Story> => {
+export const generateStoryText = async (topic: string, file: FileData, style: IllustrationStyle): Promise<Story> => {
   const parts: any[] = [];
   
   // 1. Add File (Mandatory)
@@ -30,6 +30,8 @@ export const generateStoryText = async (topic: string, file: FileData): Promise<
   You are a master novelist and world-builder. 
   Create a comprehensive story bible and a short story based on the user's topic: "${topic}".
   
+  IMPORTANT: All generated text (content, titles, descriptions, ending, etc.) MUST be written in the UZBEK language (Latin script).
+  
   Requirements:
   1. World Building: Expand on the world details. Describe the primary setting's geography and atmosphere. Detail relevant cultural aspects, societal norms, and unique elements that influence the plot.
   2. Characters: Create 2-3 main characters. Include name, detailed physical description, key personality traits, and a brief backstory for each.
@@ -38,27 +40,27 @@ export const generateStoryText = async (topic: string, file: FileData): Promise<
   
   Output MUST be a valid JSON object matching this structure:
   {
-    "title": "Story Title",
+    "title": "Story Title (Uzbek)",
     "world": {
-      "geography": "Detailed description of the physical setting",
-      "atmosphere": "Mood and sensory details",
-      "culture": "Societal norms, customs, and unique elements"
+      "geography": "Detailed description of the physical setting (Uzbek)",
+      "atmosphere": "Mood and sensory details (Uzbek)",
+      "culture": "Societal norms, customs, and unique elements (Uzbek)"
     },
     "characters": [
-      { "name": "Name", "description": "Visuals", "traits": "Personality", "backstory": "History" }
+      { "name": "Name", "description": "Visuals (Uzbek)", "traits": "Personality (Uzbek)", "backstory": "History (Uzbek)" }
     ],
     "plotOutline": [
-      { "chapterIndex": 0, "type": "Inciting Incident", "description": "Summary of this plot point" }
+      { "chapterIndex": 0, "type": "Inciting Incident", "description": "Summary of this plot point (Uzbek)" }
     ],
     "chapters": [
       { 
-        "title": "Chapter Title", 
-        "content": "Story text (approx 150 words)", 
-        "imagePrompt": "Pixar-style 3D illustration prompt",
+        "title": "Chapter Title (Uzbek)", 
+        "content": "Story text (approx 150 words) (Uzbek)", 
+        "imagePrompt": "Detailed visual scene description for an image generator (English)",
         "plotType": "Inciting Incident" 
       }
     ],
-    "ending": "Emotional summary paragraph"
+    "ending": "Emotional summary paragraph (Uzbek)"
   }
   `;
 
@@ -131,20 +133,36 @@ export const generateStoryText = async (topic: string, file: FileData): Promise<
     const text = response.text;
     if (!text) throw new Error("No text generated");
     
-    return JSON.parse(text) as Story;
+    const storyData = JSON.parse(text);
+    
+    // Inject the selected style into the story object so the reader knows how to render images
+    return {
+        ...storyData,
+        illustrationStyle: style
+    } as Story;
+
   } catch (error) {
     console.error("Text generation failed:", error);
     throw new Error("Failed to weave the story. Please ensure your file is valid.");
   }
 };
 
-export const generateIllustration = async (imagePrompt: string): Promise<string> => {
+export const generateIllustration = async (imagePrompt: string, style: IllustrationStyle = 'cartoon'): Promise<string> => {
+  
+  let styleSuffix = "";
+  
+  if (style === 'cartoon') {
+      styleSuffix = " High quality, 3d render, pixar style, bright colors, volumetric lighting, detailed textures, expressive characters.";
+  } else {
+      styleSuffix = " Cinematic movie still, photorealistic, 8k resolution, highly detailed, dramatic lighting, depth of field, masterpiece, sharp focus.";
+  }
+
   try {
     const response = await ai.models.generateContent({
       model: IMAGE_MODEL,
       contents: {
         parts: [
-          { text: imagePrompt + " High quality, 3d render, pixar style, bright colors, volumetric lighting, detailed textures." }
+          { text: imagePrompt + styleSuffix }
         ]
       },
       config: {
